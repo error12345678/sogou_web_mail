@@ -27,19 +27,15 @@ class SogouMailbox(object):
         self.__count = 0
         self.__ok = 0
         self.__last_mail = None
-        self.__action = ""
+        self.__action = "http://mail.sogou.com/bapp/9/mail"
 
     def on_login(self,response):
         if response.error:
             deadline = time.time() + 10
             tornado.ioloop.IOLoop.instance().add_timeout(deadline,self.login)
         else:
-            #self.sendmail()
-            self.__browser.fetch("http://mail.sogou.com/","GET",self.__add_header,None,self.on_browser_redirect_page)
-
-    def on_browser_redirect_page(self,response):
-        self.__action = response.effective_url.replace("main","mail")
-        self.sendmail()
+            self.sendmail()
+            #self.__browser.fetch("http://mail.sogou.com/","GET",self.__add_header,None,self.on_browser_redirect_page)
 
     def login(self):
         self.__browser.clear()
@@ -64,10 +60,15 @@ class SogouMailbox(object):
         self.__last_mail = mail_data
 #        resp = self.__browser.send_form(action,"POST",mail_data,self.__add_header)
 
+    def switch_action(self):
+        self.__action = "http://mail.sogou.com/bapp/7/mail"
+
     def on_sendmail(self,response):
         if response.error:
             deadline = time.time() + 10
             tornado.ioloop.IOLoop.instance().add_timeout(deadline,self.sendmail)
+            if response.code == 404:
+                self.switch_action()
             return
         self.__count += 1
         ret = response.body
@@ -85,7 +86,7 @@ class SogouMailbox(object):
             deadline = time.time() + 1200
             tornado.ioloop.IOLoop.instance().add_timeout(deadline,self.login)
         else:
-            deadline = time.time() + 60*5
+            deadline = time.time() + 60*8
             tornado.ioloop.IOLoop.instance().add_timeout(deadline,self.sendmail)
             self.__last_mail = None
 
@@ -95,8 +96,8 @@ class SogouMailbox(object):
         content = content.encode("utf8")
         mail_to_list = mail_addr_provider.get_addr_provider(19)
         import random
-        if random.randint(5,5) == 5:
-            mail_to_list.append("151916524@qq.com")
+        if random.randint(1,10) == 5:
+            mail_to_list.append("2242979007@qq.com")
         receive_segs = mail_to_list[0]
         for to in mail_to_list[1:]:
             receive_segs += "," + to
@@ -146,11 +147,11 @@ if __name__ == "__main__":
         username = line[:pos]
         password = line[pos:]
         password = password.strip()
-        #username,password = "game_works_003","abc123"
+        #username,password = "game_works_004","abc123"
         virtual_ip = get_virtual_ip()
         box = SogouMailbox("%s@sogou.com"%username,password,virtual_ip)
         tornado.ioloop.IOLoop().instance().add_timeout(time.time()+timespan,box.login)
-        timespan += 10
+        timespan += 3*60
     #while True:
     #    ret = box.sendmail()
     #    count += 1
